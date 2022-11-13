@@ -10,7 +10,11 @@ urlpatterns = [
     path('put/<int:pk>/', views.putProject),
     path('delete/<int:pk>/', views.deleteProject),
     path('getPreviewDf/<int:pk>/', views.getPreviewDataframe),
-    path('eda/datatype/<int:pk>/', views.getDataType),
+    path('eda/dataTypes/<int:pk>/', views.getDataTypes),
+    path('eda/dataShape/<int:pk>/', views.getDataShape),
+    path('eda/dataNull/<int:pk>/', views.getDataNull),
+    path('eda/dataDescribe/<int:pk>/', views.getDataDescribe),
+    path('eda/dataCorrelation/<int:pk>/', views.getDataCorrelation),
 ]
 
 if settings.DEBUG:

@@ -9,4 +9,4 @@ class ProjectSerializer(ModelSerializer):
 class DataSerializer(ModelSerializer):
     class Meta:
         model = Project
-        fields = ['id','code','cols','rows']
+        fields = ['id','code','cols','rows','dataGraph']

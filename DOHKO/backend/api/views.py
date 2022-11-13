@@ -15,13 +15,41 @@ def getPreviewDataframe(request, pk):
     return Response(serializer.data)
 
 @api_view(['GET'])
-def getDataType(request, pk):
+def getDataTypes(request, pk):
     project = Project.objects.get(id=pk)
-    project.data_structure_description()
+    project.dataTypes()
     serializer = DataSerializer(project, many=False)
     return Response(serializer.data)
 
+@api_view(['GET'])
+def getDataShape(request, pk):
+    project = Project.objects.get(id=pk)
+    project.dataShape()
+    serializer = DataSerializer(project, many=False)
+    return Response(serializer.data)
 
+@api_view(['GET'])
+def getDataNull(request, pk):
+    project = Project.objects.get(id=pk)
+    project.dataNull()
+    serializer = DataSerializer(project, many=False)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+def getDataDescribe(request, pk):
+    project = Project.objects.get(id=pk)
+    project.dataDescribe()
+    serializer = DataSerializer(project, many=False)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+def getDataCorrelation(request, pk):
+    project = Project.objects.get(id=pk)
+    project.dataCorrelation()
+    serializer = DataSerializer(project, many=False)
+    return Response(serializer.data)
+
+# Projects
 @api_view(['GET'])
 def getProjects(request):
     project = Project.objects.all()
