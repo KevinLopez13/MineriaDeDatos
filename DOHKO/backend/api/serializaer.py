@@ -4,9 +4,9 @@ from .models import Project
 class ProjectSerializer(ModelSerializer):
     class Meta:
         model = Project
-        fields = ['id','name','desc','url','dataFile','cols','rows']
+        fields = ['id','name','desc','url','dataFile','fileName']
 
 class DataSerializer(ModelSerializer):
     class Meta:
         model = Project
-        fields = ['id','code','cols','rows','dataGraph']
+        fields = ['id','resType','code','cols','rows','dataGraph']
