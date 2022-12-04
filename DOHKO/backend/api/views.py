@@ -5,13 +5,32 @@ from .models import Project
 from .serializaer import DataSerializer, ProjectSerializer
 import re
 
-@api_view(['GET'])
-def eda(request, pk):
-    """Funcion que ejecuta la funcion correspondiente a la funcion eda."""
+
+@api_view(['GET', 'POST'])
+def getPost(request, pk):
+    """Funcion que ejecuta la funcion correspondiente al url de cada operación."""
+    data = request.data
+
     project = Project.objects.get(id=pk)
+    
+    kargs = {}
+    args = data.get('kgs', None)
+    if args:
+        args = args.split(',')
+        for arg in args:
+            # g = re.search('=(?!=)',c)
+            # span = (s,e)
+            # cons = arg[:s]
+            # param = arg[e:]
+            param = arg.split('=')
+            kargs[param[0].strip()] = param[1].strip()
+    
+    # print("params", kargs)
+
     fun = request.get_full_path().split('/')[2]
     f = getattr(project, fun)
-    f()
+    f(**kargs)
+    
     serializer = DataSerializer(project, many=False)
     return Response(serializer.data)
 
