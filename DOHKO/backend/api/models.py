@@ -19,6 +19,7 @@ import sklearn.preprocessing as skp
 from sklearn import model_selection
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.tree import plot_tree
 
 
 dataframe = None
@@ -32,6 +33,9 @@ X_train = None
 X_test = None
 Y_train = None
 Y_test = None
+Y_Pronostico = None
+x_vars = None
+y_var = None
 
 class Project(models.Model):
     name = models.CharField(max_length=20)
@@ -39,6 +43,7 @@ class Project(models.Model):
     url = models.CharField(max_length=200, null=True)
     dataFile = models.FileField(upload_to='datasets/', null=True, default=None)
     fileName = models.CharField(max_length=100, null=True)
+    # images = models.ImageField(upload_to=upload_to, blank=True, null=True)
 
     dataframe = None
     rows = None
@@ -150,12 +155,13 @@ class Project(models.Model):
         # self.load_data()
         global dataframe
         self.resType = 'table'
-        # self.cols = self.dataframe.describe().columns.tolist()
+        
         self.cols = dataframe.describe().columns.tolist()
         self.cols.insert(0,'')
         measures = ['Cuenta', 'Media', 'Std.', 'Min','25%','50%','75%','Max']
         # self.rows = self.dataframe.describe().values.tolist()
-        self.rows = [ clsNan(row) for row in dataframe.describe().values.tolist()]
+        rows = rowsRound( dataframe.describe().values.tolist(), digits = 2)
+        self.rows = [ clsNan(row) for row in rows]
 
         for row, measure in zip(self.rows, measures):
             row.insert(0, measure)
@@ -168,8 +174,8 @@ class Project(models.Model):
 
         self.cols = np.insert( dataframe.corr().columns, 0, '#').tolist()
 
-        # Redondeo a 6 digitos
-        rows_lst = [ [round(c, 6) for c in row] for row in dataframe.corr().values]
+        rows_lst = rowsRound( dataframe.corr().values)
+
         # Conversion a string + columna de variables
         self.rows = [ [col] + [str(c) if pd.isna(c) else c for c in row] for col, row in zip(self.cols[1:], rows_lst)]
 
@@ -292,7 +298,11 @@ class Project(models.Model):
         standard = scalerFunc.fit_transform( subframe )
         dataframeScaler = pd.DataFrame(standard, columns=subframe.columns)
 
-        self.cols, self.rows = dataframePreview(dataframeScaler)
+
+        cols = dataframeScaler.columns.values.tolist()
+        rows = rowsRound(dataframeScaler.values.tolist())
+        rows, self.cols = rowsEnumerate(rows,cols)
+        self.rows = rowsPreview(rows)
 
 
     def dataComponents(self, **kargs):
@@ -303,17 +313,17 @@ class Project(models.Model):
 
         pca = PCA(n_components=(n_comp or None))
         pca.fit(dataframeScaler)
-        rows = pca.components_.tolist()
-        #cols = []
+        rows = rowsRound( pca.components_.tolist() )
         self.rows, self.cols = rowsEnumerate(rows)
 
 
     def dataVariance(self, **kargs):
         global dataframeScaler, pca
-        self.resType = 'text'
+        self.resType = 'table'
 
         varianza = pca.explained_variance_ratio_
-        self.code = { 'result':str(varianza) }
+        rows = rowsRound([varianza.tolist()])
+        self.rows, self.cols = rowsEnumerate(rows[0])
 
 
     def dataVarianceAcum(self, **kargs):
@@ -325,6 +335,7 @@ class Project(models.Model):
         varianza = pca.explained_variance_ratio_
         sumvar = sum(varianza[0:n])
         self.code = { 'result':str(sumvar) }
+
 
     def dataVarianceAcumLine(self, **kargs):
         global pca
@@ -338,12 +349,12 @@ class Project(models.Model):
             'data':vals
         }
 
-        line = [{
-            'datas':data,
+        line = {
+            'datas':[data],
             'title':"Titulo",
             'x_legend':"Número de componentes",
             'y_legend':"Varianza acumulada"
-        }]
+        }
 
         self.dataGraph = line
 
@@ -353,8 +364,9 @@ class Project(models.Model):
 
         self.resType = 'table'
 
-        rows = abs(pca.components_).tolist()
-        cols = dataframe.columns.values.tolist()
+        df = pd.DataFrame(abs(pca.components_), columns = dataframe.columns)
+        rows = rowsRound(df.values.tolist())
+        cols = df.columns.values.tolist()
 
         self.rows, self.cols = rowsEnumerate(rows, cols)
 
@@ -363,12 +375,9 @@ class Project(models.Model):
         global dataframe
         self.resType = 'table'
 
-        dropCols = kargs.get('columns',None)
-        if dropCols:
-            dropCols = dropCols.replace('[','').replace(']','').split(',')
-            dropCols = [col.strip() for col in dropCols]
+        dropCols = kargs.get('vars',[])
 
-        df = dataframe.drop(columns=dropCols or [])
+        df = dataframe.drop(columns=dropCols)
 
         cols = df.columns.values.tolist()
         rows = df.values.tolist()
@@ -383,20 +392,15 @@ class Project(models.Model):
 
         dataframe = dataframe.dropna()
 
-        self.cols, self.rows = dataframePreview(dataframe)
+        self.rows, self.cols = dataframePreview(dataframe)
 
 
     def dataVPredict(self, **kargs):
-        global dataframe, X
+        global dataframe, X, x_vars
         self.resType = 'table'
 
-        cols = []
-
-        vars = kargs.get('vars', None)
-        if vars:
-            cols = str2list(vars)
-            cols = cols
-
+        cols = kargs.get('vars', [])
+        x_vars = cols
         X = np.array(dataframe[cols])
         rows = dataframe[cols].values.tolist()
 
@@ -405,20 +409,15 @@ class Project(models.Model):
 
 
     def dataVPronostic(self, **kargs):
-        global dataframe, Y
+        global dataframe, Y, y_var
         self.resType = 'table'
 
-        cols = []
+        var = kargs.get('vars', [])
+        y_var = var
+        Y = np.array(dataframe[var])
+        rows = dataframe[var].values.tolist()
 
-        var = kargs.get('var', None)
-        if var:
-            cols = str2list(var)
-            cols = cols[:1]
-
-        Y = np.array(dataframe[cols])
-        rows = dataframe[cols].values.tolist()
-
-        rows, self.cols = rowsEnumerate( rows, cols)
+        rows, self.cols = rowsEnumerate( rows, var)
         self.rows = rowsPreview(rows)
 
 
@@ -472,10 +471,28 @@ class Project(models.Model):
         self.code = { 'result':'DecisionTreeRegressor()' }
 
     def dataPronostic(self, **kwargs):
-        global X_test, Pronostico
+        global X_test, Pronostico, Y_Pronostico
 
         self.resType = 'table'
 
         Y_Pronostico = Pronostico.predict(X_test)
-        rows, self.cols = rowsEnumerate(Y_Pronostico.tolist())
+        dfp = pd.DataFrame(Y_Pronostico, columns=['Y_Pronostico'])
+        dft = pd.DataFrame(Y_test, columns=['Y_test'])
+        df = dft.join(dfp)
+        rows = rowsRound( df.values.tolist() )
+        rows, self.cols = rowsEnumerate( rows, df.columns.values.tolist() )
         self.rows = rowsPreview(rows)
+
+
+    def dataScore(self, **kargs):
+        global Y_test, Y_Pronostico
+        self.resType = 'text'
+        score = r2_score(Y_test, Y_Pronostico)
+        self.code = {'result':f'Score: {score}'}
+
+    def dataPlotDTree(self, **kargs):
+        global Pronostico
+        plt.clf()
+        plot_tree(Pronostico, feature_names = x_vars)
+        #plt.savefig()
+        plt.clf()

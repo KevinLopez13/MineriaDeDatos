@@ -25,7 +25,10 @@ def getPost(request, pk):
             param = arg.split('=')
             kargs[param[0].strip()] = param[1].strip()
     
-    # print("params", kargs)
+    kvars = data.get('vars')
+
+    if kvars:
+        kargs.update({'vars':kvars})
 
     fun = request.get_full_path().split('/')[2]
     f = getattr(project, fun)
