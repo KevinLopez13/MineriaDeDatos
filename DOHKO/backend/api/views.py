@@ -12,27 +12,22 @@ def getPost(request, pk):
     data = request.data
 
     project = Project.objects.get(id=pk)
-    
-    kargs = {}
-    args = data.get('kgs', None)
-    if args:
-        args = args.split(',')
-        for arg in args:
-            # g = re.search('=(?!=)',c)
-            # span = (s,e)
-            # cons = arg[:s]
-            # param = arg[e:]
-            param = arg.split('=')
-            kargs[param[0].strip()] = param[1].strip()
-    
-    kvars = data.get('vars')
 
-    if kvars:
-        kargs.update({'vars':kvars})
-
-    fun = request.get_full_path().split('/')[2]
-    f = getattr(project, fun)
-    f(**kargs)
+    func = data.get('func')
+    if func:
+        fun = func.split('/')[1]
+        f = getattr(project, fun)
+        f(config=True)
+    
+    else:
+        kargs = {
+            'args':data.get('kargs', {}),
+            'vars':data.get('usrVars',[]),
+            **data.get('input_vals',{})
+            }
+        fun = request.get_full_path().split('/')[2]
+        f = getattr(project, fun)
+        f(**kargs)
     
     serializer = DataSerializer(project, many=False)
     return Response(serializer.data)

@@ -50,7 +50,20 @@ def rowsPreview(rows):
 
 
 def rowsRound(rows, digits=6):
-    return [[round(val, digits) for val in row] for row in rows]
+    # return [[round(val, digits) for val in row] for row in rows]
+    res = []
+    for row in rows:
+        res_row = []
+        for val in row:
+            try:
+                v = round(val, digits)
+            except:
+                v = val
+            res_row.append(v)
+        res.append(res_row)
+    
+    return res
+            
 
 def str2list(params):
     if not params:

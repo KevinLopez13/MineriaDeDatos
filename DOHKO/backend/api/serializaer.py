@@ -9,4 +9,17 @@ class ProjectSerializer(ModelSerializer):
 class DataSerializer(ModelSerializer):
     class Meta:
         model = Project
-        fields = ['id','resType','code','cols','rows','dataGraph','complement']
+        fields = ['id',
+                    'resType',
+                    'code',
+                    'cols',
+                    'rows',
+                    'dataGraph',
+                    'complement',
+                    'command',
+                    'kargs',
+                    'vars',
+                    'checkBoxType',
+                    'multiline',
+                    'default_args',
+                    'images']
